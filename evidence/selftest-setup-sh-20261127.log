@@ -39,8 +39,8 @@ INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogener
 INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.comments
 ALEMBIC VERIFY: PASS
 === 2/3 自测 pytest ===
-................                                                         [100%]
-16 passed in 31.47s
+...................                                                      [100%]
+19 passed in 83.36s (0:01:23)
 === 3/3 核对 MANIFEST ===
 .github/workflows/ci.yml: OK
 .gitignore: OK
@@ -64,4 +64,5 @@ tests/test_ac1_roundtrip.py: OK
 tests/test_ac2_unique.py: OK
 tests/test_ac3_check.py: OK
 tests/test_ac4_fk.py: OK
+tests/test_m1_preexisting_membership.py: OK
 SELFTEST: PASS

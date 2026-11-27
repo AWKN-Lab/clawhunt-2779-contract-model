@@ -1,14 +1,14 @@
-migration sha256 before: 2fbadbcc332a2e2b8b63cbcacc0c77504f0556fea159c9126e2a68bb8d0ff2dd
+migration sha256 before: 5895db23b2e7dfb8b87c9335f130a71ce0130054bb60ee6c589f0dfd437ab32d
 === PHASE A: 原迁移全量 pytest ===
-................                                                         [100%]
-16 passed in 30.49s
+...................                                                      [100%]
+19 passed in 105.10s (0:01:45)
 PHASE A exit=0
 === PHASE B: 变异迁移（删 active→signed CHECK）跑 test_ac3_check.py ===
 FF...                                                                    [100%]
 =================================== FAILURES ===================================
 ________________________ test_active_unsigned_rejected _________________________
 
-session = <sqlalchemy.orm.session.Session object at 0x703d28807e90>
+session = <sqlalchemy.orm.session.Session object at 0x7ad984e1be30>
 
     def test_active_unsigned_rejected(session):
         session.add(make_contract(status="active", esign_status="unsigned"))
@@ -18,7 +18,7 @@ E       Failed: DID NOT RAISE IntegrityError
 tests/test_ac3_check.py:17: Failed
 _________________________ test_active_signing_rejected _________________________
 
-session = <sqlalchemy.orm.session.Session object at 0x703d2881aea0>
+session = <sqlalchemy.orm.session.Session object at 0x7ad984e32ea0>
 
     def test_active_signing_rejected(session):
         session.add(make_contract(status="active", esign_status="signing"))
@@ -29,12 +29,12 @@ tests/test_ac3_check.py:24: Failed
 =========================== short test summary info ============================
 FAILED tests/test_ac3_check.py::test_active_unsigned_rejected - Failed: DID N...
 FAILED tests/test_ac3_check.py::test_active_signing_rejected - Failed: DID NO...
-2 failed, 3 passed in 8.63s
+2 failed, 3 passed in 26.91s
 PHASE B exit=1
-migration sha256 after: 2fbadbcc332a2e2b8b63cbcacc0c77504f0556fea159c9126e2a68bb8d0ff2dd
+migration sha256 after: 5895db23b2e7dfb8b87c9335f130a71ce0130054bb60ee6c589f0dfd437ab32d
 migration unchanged: True
 === PHASE C: 恢复原迁移，全量 pytest ===
-................                                                         [100%]
-16 passed in 29.74s
+...................                                                      [100%]
+19 passed in 126.13s (0:02:06)
 PHASE C exit=0
 MUTATION CHECK: PASS

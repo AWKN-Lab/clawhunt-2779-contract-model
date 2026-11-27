@@ -9,8 +9,8 @@ SQLite 3.45.1（临时文件）；未连接任何真实数据库。
 
 ```text
 $ python -m pytest -q
-................ [100%]
-16 passed in 38.88s
+................... [100%]
+19 passed in 44.52s
 ```
 
 原始输出：`evidence/pytest-20261127.log`。
@@ -34,8 +34,8 @@ ALEMBIC VERIFY: PASS
 `alembic check` 两次均报零漂移（`evidence/alembic-20261127.log` 内
 `No new upgrade operations detected.` 出现 2 次）。`env.py` 的
 target_metadata 直接用 `src/models.py` 的真实 metadata，是真比对。
-downgrade 后 `crm_contract` 与 `crm_membership` 两张表消失
-（两张表都是本次迁移创建的，downgrade 是精确逆操作）。
+downgrade 后 `crm_contract` 表消失，`crm_membership` 表保留
+（M1：downgrade 永不删会员表，只删外键与 contract_id 列）。
 
 ## AC2：同一 org 两条未删除合同使用相同 contract_no 被拒绝，软删除后可复用
 
@@ -74,8 +74,34 @@ WHERE deleted_at IS NULL`，见 `migrations/versions/0001_create_crm_contract.py
 - `test_membership_with_valid_contract_ok`：指向已存在合同的会员可插入。
 - `test_membership_with_missing_contract_rejected`：指向不存在合同 id
 的会员报 `IntegrityError`（SQLite 外键强制已开）。
-- `test_downgrade_removes_fk_column_and_tables`：downgrade 后
-`crm_contract` 与 `crm_membership` 两张表消失（外键与列随之移除）。
+- `test_downgrade_removes_fk_column_keeps_membership_table`：downgrade 后
+`crm_contract` 表消失，外键与 `contract_id` 列移除，`crm_membership`
+表保留（M1 改名并改断言：旧断言“两表消失”正是 GPT 第 1 轮指出
+的不安全行为，AC 原文只要求外键移除，不要求删表）。
+
+## M1：预存会员表迁移集成（GPT 第 1 轮复核必改）
+
+文件：`tests/test_m1_preexisting_membership.py`（3 个测试，全过）。
+只在 SQLite 上跑，是模拟，不是真实 PostgreSQL 验证。
+
+- `test_upgrade_adds_column_and_fk_preserves_data`：先建已有数据的
+`crm_membership` 表（不含 `contract_id`，另含真实表才有的额外列
+phone、level），再跑 upgrade：`contract_id` 列与外键创建成功
+（外键 1 条，指向 `crm_contract.id`），原有两行数据完好
+（字段与额外列原样，`contract_id` 为空）；新列可用，
+指向已存在合同的会员可插入，指向不存在合同 id 的会员报
+`IntegrityError`（SQLite 外键强制已开）。
+- `test_downgrade_keeps_table_and_data`：upgrade 后跑 downgrade：
+原表与原有数据保留（两行都在，字段与额外列原样），外键与
+`contract_id` 列已移除，`crm_contract` 表已删。
+- `test_extra_columns_survive_upgrade_downgrade_upgrade`：额外列
+phone、level 在 upgrade / downgrade / 再 upgrade 后都在、值不变
+（SQLite batch 重建表不得丢列）。
+
+迁移改动（`migrations/versions/0001_create_crm_contract.py`）：
+upgrade 表已存在时跳过建表、只加列与外键；downgrade 只删外键与
+`contract_id` 列、永不删 `crm_membership` 表。样品绿地路径下
+downgrade 后留一个空的最小会员表，是安全的有意行为。
 
 ## 变异自证
 
@@ -83,17 +109,17 @@ WHERE deleted_at IS NULL`，见 `migrations/versions/0001_create_crm_contract.py
 `evidence/mutation-check-20261127.log`。
 
 ```text
-migration sha256 before: 2fbadbcc332a2e2b8b63cbcacc0c77504f0556fea159c9126e2a68bb8d0ff2dd
+migration sha256 before: 5895db23b2e7dfb8b87c9335f130a71ce0130054bb60ee6c589f0dfd437ab32d
 === PHASE A: 原迁移全量 pytest ===
-16 passed in 30.49s
+19 passed in 105.10s
 PHASE A exit=0
 === PHASE B: 变异迁移（删 active→signed CHECK）跑 test_ac3_check.py ===
-2 failed, 3 passed in 8.63s
+2 failed, 3 passed in 26.91s
 PHASE B exit=1
-migration sha256 after: 2fbadbcc332a2e2b8b63cbcacc0c77504f0556fea159c9126e2a68bb8d0ff2dd
+migration sha256 after: 5895db23b2e7dfb8b87c9335f130a71ce0130054bb60ee6c589f0dfd437ab32d
 migration unchanged: True
 === PHASE C: 恢复原迁移，全量 pytest ===
-16 passed in 29.74s
+19 passed in 126.13s
 PHASE C exit=0
 MUTATION CHECK: PASS
 ```

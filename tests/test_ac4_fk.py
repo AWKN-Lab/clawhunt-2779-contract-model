@@ -45,15 +45,18 @@ def test_membership_with_missing_contract_rejected(session):
     session.rollback()
 
 
-def test_downgrade_removes_fk_column_and_tables(db_path):
+def test_downgrade_removes_fk_column_keeps_membership_table(db_path):
     run_alembic("upgrade", "head", db_path=db_path)
     proc = run_alembic("downgrade", "base", db_path=db_path)
     assert proc.returncode == 0, f"downgrade base 失败：\n{proc.stdout}\n{proc.stderr}"
     engine = create_engine(f"sqlite:///{db_path}")
     insp = inspect(engine)
     tables = set(insp.get_table_names())
-    # 两张表都是本次迁移创建的，downgrade 精确逆转：外键与 contract_id 列
-    # 随会员表一起消失，合同表也消失。
+    # M1（GPT 第 1 轮复核必改）：downgrade 只删外键与 contract_id 列，
+    # 会员表本身保留；合同表消失。
     assert "crm_contract" not in tables
-    assert "crm_membership" not in tables
+    assert "crm_membership" in tables
+    columns = {c["name"] for c in insp.get_columns("crm_membership")}
+    assert "contract_id" not in columns
+    assert insp.get_foreign_keys("crm_membership") == []
     engine.dispose()

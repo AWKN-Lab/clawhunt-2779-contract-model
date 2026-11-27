@@ -43,10 +43,14 @@ def test_downgrade_removes_contract_table_and_fk_column(db_path):
     engine = create_engine(f"sqlite:///{db_path}")
     insp = inspect(engine)
     tables = set(insp.get_table_names())
-    # 两张表都是本次迁移创建的，downgrade 是 upgrade 的精确逆操作，
-    # 所以两张表都消失；contract_id 列随会员表一起消失。
+    # M1（GPT 第 1 轮复核必改）：downgrade 删合同表、删外键与 contract_id 列，
+    # 但永不删会员表（真实库里会员表早已存在）；样品绿地路径下留一个空的
+    # 最小会员表，是安全的有意行为。
     assert "crm_contract" not in tables
-    assert "crm_membership" not in tables
+    assert "crm_membership" in tables
+    columns = {c["name"] for c in insp.get_columns("crm_membership")}
+    assert "contract_id" not in columns
+    assert insp.get_foreign_keys("crm_membership") == []
     engine.dispose()
 
 

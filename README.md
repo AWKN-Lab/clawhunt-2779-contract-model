@@ -17,15 +17,15 @@ Alembic 迁移 upgrade/downgrade、pytest 覆盖 4 条验收标准。
 | 3 | status=active 而 esign_status 不为 signed 的记录被 CHECK 拒绝（pytest 通过） | `tests/test_ac3_check.py` 5 个测试；CHECK `ck_contract_active_requires_signed` |
 | 4 | crm_membership.contract_id 外键在 upgrade 后存在、downgrade 后移除（pytest 通过） | `tests/test_ac4_fk.py` 4 个测试；外键 `fk_crm_membership_contract_id_crm_contract`，`ondelete="SET NULL"` |
 
-测试总计 **16 passed**（`python -m pytest -q`，原始输出见
-`evidence/pytest-20261127.log`）。
+测试总计 **19 passed**（`python -m pytest -q`，原始输出见
+`evidence/pytest-20261127.log`），含 M1 预存会员表迁移集成测试 3 项。
 
 ## 快速开始
 
 ```bash
 pip install -r requirements.txt
 bash setup.sh               # 一键自测：Alembic 验证 + pytest + MANIFEST 核验
-python -m pytest -q         # 16 passed（也可单独跑）
+python -m pytest -q         # 19 passed（也可单独跑）
 python scripts/verify_alembic.py   # Alembic 验证：upgrade / check / downgrade / upgrade
 python scripts/mutation_check.py   # 变异自证：删 CHECK -> AC3 断言变红，恢复 -> 全绿
 ```
@@ -47,7 +47,7 @@ src/models.py                 SQLAlchemy 模型：crm_contract、crm_membership
 migrations/                   Alembic 迁移（0001 建合同表 + 会员表加外键）
 scripts/verify_alembic.py     Alembic 验证脚本（只写临时目录）
 scripts/mutation_check.py     变异自证脚本（只改临时复制仓）
-tests/                        pytest 用例（AC1/AC2/AC3/AC4，共 16 个）
+tests/                        pytest 用例（AC1/AC2/AC3/AC4 共 16 个 + M1 预存会员表集成 3 个 = 19 个）
 evidence/                     原始日志（pytest、Alembic、变异自证、自测）
 ```
 
@@ -73,8 +73,11 @@ evidence/                     原始日志（pytest、Alembic、变异自证、�
   另行授权与对接。部分唯一索引的 `postgresql_where` 已与
   `sqlite_where` 写成同一条件，同一份迁移可直接用。
 - 样品里的 `crm_membership` 是最小表（只有本单需要的字段），
-  由本次迁移创建；downgrade 按精确逆操作一并删表。真实库里
-  会员表早已存在，生产迁移只需加列与外键、删列与外键。
+  由本次迁移创建；upgrade 时表已存在会跳过建表、只加列与外键，
+  downgrade 永不删会员表（只删列与外键），已用预存表集成测试
+  （`tests/test_m1_preexisting_membership.py`，3 项）验证：
+  预存表增列、外键创建、原有数据完好，downgrade 后原表与数据保留。
+  真实库里会员表早已存在，生产迁移只需加列与外键、删列与外键。
 - 测试数据全部虚构（虚构公司名、虚构会员名、合同编号 HT-2026-xxxx），
   不出现任何真实客户名称与真实个人信息。
 - 金额一律以分存整数；配置与密钥只从环境变量读取

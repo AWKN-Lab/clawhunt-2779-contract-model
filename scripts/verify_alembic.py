@@ -3,7 +3,8 @@
 
 - upgrade head：建表成功，alembic_version 为 0001。
 - alembic check：必须输出 "No new upgrade operations detected."（零漂移）。
-- downgrade base：crm_contract 表消失，crm_membership 的 contract_id 列消失。
+- downgrade base：crm_contract 表消失，crm_membership 的 contract_id 列消失，
+  会员表本身保留（M1：downgrade 永不删会员表）。
 - 再次 upgrade head：往返成功，check 仍零漂移。
 只写临时目录，不碰真实数据库，不写仓内文件（setup.sh 调它时不改 MANIFEST）。
 """
